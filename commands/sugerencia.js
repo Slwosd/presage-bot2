@@ -1,63 +1,67 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require("discord.js");
-const config = require("../config");
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const config = require('../config');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("sugerencia")
-    .setDescription("Envía una sugerencia al servidor")
+    .setName('sugerencia')
+    .setDescription('Enviar una sugerencia')
     .addStringOption(option =>
       option
-        .setName("mensaje")
-        .setDescription("Escribe tu sugerencia")
+        .setName('texto')
+        .setDescription('Escribe tu sugerencia')
         .setRequired(true)
-        .setMaxLength(1000)
     ),
 
   async execute(interaction) {
-    const sugerencia = interaction.options.getString("mensaje");
-    const canal = interaction.guild.channels.cache.get(config.suggestionChannelId);
+    const texto = interaction.options.getString('texto');
 
-    if (!canal) {
+    const canalSugerencias = interaction.guild.channels.cache.get(
+      config.suggestionChannelId
+    );
+
+    if (!canalSugerencias) {
       return interaction.reply({
-        content: "No se encontró el canal de sugerencias.",
+        content: '❌ No se encontró el canal de sugerencias.',
         ephemeral: true
       });
     }
 
-    if (!canal.permissionsFor(interaction.guild.members.me).has(PermissionFlagsBits.SendMessages)) {
-      return interaction.reply({
-        content: "No tengo permisos para enviar mensajes en el canal de sugerencias.",
-        ephemeral: true
-      });
-    }
+    const emojiTitulo = '<a:florazul:1474163532508434453>';
+    const emojiNo = '<:nein73:1476031269107400805>';
+    const emojiSi = '<:green_check:1476031228032323837>';
 
     const embed = new EmbedBuilder()
-      .setTitle("Nueva Sugerencia")
-      .setDescription(sugerencia)
-      .addFields({
-        name: "Autor",
-        value: `<@${interaction.user.id}>`,
-        inline: true
+      .setTitle(`${emojiTitulo} NUEVA SUGERENCIA ${emojiTitulo}`)
+      .setColor(0xc77dff) // 💜 violeta claro
+      .setThumbnail(
+        interaction.user.displayAvatarURL({ dynamic: true, size: 512 })
+      )
+      .addFields(
+        {
+          name: 'User',
+          value: `${interaction.user}`,
+          inline: false
+        },
+        {
+          name: 'Sugerencia',
+          value: texto,
+          inline: false
+        }
+      )
+      .setFooter({
+        text: 'Reacciona para votar '
       })
-      .setColor(0x5865f2)
       .setTimestamp();
 
-    try {
-      const msg = await canal.send({ embeds: [embed] });
+    const mensaje = await canalSugerencias.send({ embeds: [embed] });
 
-      await msg.react("✅");
-      await msg.react("❌");
+    // 🔁 Reacciones automáticas
+    await mensaje.react(emojiSi);
+    await mensaje.react(emojiNo);
 
-      await interaction.reply({
-        content: "Tu sugerencia fue enviada correctamente.",
-        ephemeral: true
-      });
-    } catch (error) {
-      console.error("Error enviando sugerencia:", error);
-      return interaction.reply({
-        content: "Ocurrió un error al enviar la sugerencia.",
-        ephemeral: true
-      });
-    }
+    await interaction.reply({
+      content: '✅ Tu sugerencia fue enviada correctamente.',
+      ephemeral: true
+    });
   }
 };
